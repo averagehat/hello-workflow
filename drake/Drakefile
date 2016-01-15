@@ -1,0 +1,25 @@
+SFFS:=$(ls *.fastq)
+FASTQS:=$(ls *.fastq)
+
+;foo/ah.txt <- foo/... [shell]
+;  echo $[INPUTS]
+
+
+foo.fastq <- foo.sff [python]
+  from Bio.SeqIO import convert
+  import os, sh
+  #print 'HEY', os.environ['FASTQS']
+  convert('$[INPUT]', 'sff', '$[OUTPUT]', 'fastq')
+  #os.environ['FASTQS'] = next(sh.ls(sh.glob("*.fastq")))
+
+foo.fasta <- foo.fastq [python]
+  from Bio.SeqIO import convert
+  import os
+  #FASTQS=$(ls *.fastq)
+  print 'HEY', os.environ['FASTQS']
+  convert('$[INPUT]', 'fastq', '$[OUTPUT]', 'fasta')
+
+;; Problems:
+;; doesn't work with dynamic (e.g., multiple) inputs
+;; no directory inputs
+;; methods don't return values (only exec stuff)
