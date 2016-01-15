@@ -1,4 +1,13 @@
 
+# hello-workflow
+
+
+### Frameworks to consider:
+* bpipe
+* shake
+* CWL
+* altered Drake
+* pydoit
 
 
 * treat _R[12]_ files differently;
