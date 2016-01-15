@@ -7,6 +7,8 @@ import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
 import Development.Shake.Util
+
+-- see https://github.com/ndmitchell/shake
 -- To run:
 -- stack setup
 -- stack exec shell-exe
