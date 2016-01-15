@@ -19,6 +19,7 @@ library
   build-depends:       base >= 4.7 && < 5
                      , turtle
                      , shake
+                     , pyfi
   default-language:    Haskell2010
 
 executable shell-exe
@@ -28,6 +29,7 @@ executable shell-exe
   build-depends:       base
                      , shell
                      , shake
+                     , pyfi
   default-language:    Haskell2010
 
 test-suite shell-test
