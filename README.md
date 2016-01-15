@@ -30,4 +30,7 @@
 
 
 
-
+###Shake
+stack setup
+stack build
+stack exec shell-exe
