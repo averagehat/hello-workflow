@@ -17,9 +17,6 @@ import Control.Applicative
 -- stack exec shell-exe
 block :: IO ()
 -- FilePath is an alias for string
---mapPairedUnpaired :: (FilePath -> FilePath -> Action) -> (FilePath -> Action) -> [FilePath] -> ([Action], [Action])
-mapPairedUnpaired pF unpF fqs = ((zipWithM_ pF fwd rev), mapM unpF unp) 
-  where (unp, fwd, rev) =  groupFastqs fqs
 
 matching str strings = (filter (=~ str) strings) :: [String] 
 
@@ -29,15 +26,19 @@ groupFastqs fqs = (unp, fwd, rev)
     fwd = matching "_R1_" fqs
     rev = matching "_R2_" fqs
 
-unpCutAdapt fq = unit $ cmd "cutadapt" ["-a", "AACCGGTT", "-o", fq <.> "cutadapt" , fq ]
 
+mapPairedUnpaired :: (FilePath -> FilePath -> Action ()) -> (FilePath -> Action ()) -> [FilePath] -> (Action (), Action ())
+mapPairedUnpaired pF unpF fqs = ((zipWithM_ pF fwd rev), mapM_ unpF unp) 
+  where (unp, fwd, rev) =  groupFastqs fqs
+
+unpCutAdapt fq = unit $ cmd "cutadapt" ["-a", "AACCGGTT", "-o", fq <.> "cutadapt" , fq ] 
 pCutAdapt fwd rev = unit $ cmd "cutadapt" ["-a", "ADAPTER_FWD", "-A", "ADAPTER_REV", "-o", outFwd, "-p", outRev,  fwd, rev]
   where (outFwd, outRev) = (fwd <.> "cutdapt", rev <.> "cutadapt")
  
 allFqs = liftA2 (++) sffs fqs
   where 
     -- TODO: fix with -<.> "fastq" !
-    sffs = getDirectoryFiles "" ["data/*.sff"]
+    sffs = liftM (map (-<.> "fastq")) $ getDirectoryFiles "" ["data/*.sff"]
     fqs =  getDirectoryFiles "" ["data/*.fastq"] 
 
 runPython str = do 
@@ -45,6 +46,7 @@ runPython str = do
     liftIO $ writeFile file fixedStr
     cmd "python" file
   where 
+    --TODO: fix so this works even if the first line is empty
     indent = length $ takeWhile (== ' ') $ head $ lines str
     fixedStr = unlines $ map (drop indent) $ lines str
 
@@ -58,9 +60,11 @@ block = shakeArgs shakeOptions{shakeFiles="_build"} $ do
     "data/align/align.bam" %> \out -> do 
        sffs <- getDirectoryFiles "" ["data/*.sff"]
        let fqs = [c -<.> "fastq" | c <- sffs]
-       need fqs -- fqs is the prerequisites
+       need fqs
        allFastqs <- getDirectoryFiles "" ["data/*.fastq"] 
-       putNormal $ show ("input sffs", sffs) -- logging
+       --allFastqs <- allFqs
+       --need allFastqs -- fqs is the prerequisites
+       putNormal $ show ("input sffs", allFastqs) -- logging
        cmd Shell "cat" allFastqs ">" [out] 
 
     "data/*.fastq" %> \out -> do 
@@ -72,11 +76,10 @@ block = shakeArgs shakeOptions{shakeFiles="_build"} $ do
          |]
 
     "data/*.cutadapt" %> \out -> do 
-        foo <- allFqs
-        need foo
-        --TODO: fix type problems here
-        --let x = mapPairedUnpaired pCutAdapt unpCutAdapt allFqs 
-        cmd "echo" "foo"
+        fqs <- allFqs
+        need fqs
+        () <- cmd "echo" fqs
+        fst $ mapPairedUnpaired pCutAdapt unpCutAdapt fqs --return type must be Action (), not tuple
 
 -- note that stack cannot tell if a rule has changed. so altering want/need and re-running won't work.
        -- () <-  is needed if cmd is not the last statement, e.g.
